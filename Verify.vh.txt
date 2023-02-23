@@ -1,0 +1,4 @@
+
+`define CHANNELS 4;
+`define WIDTH 32;
+`define WEIGHTLIMIT 100;

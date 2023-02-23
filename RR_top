@@ -1,0 +1,136 @@
+// RRBTOP module
+// Top level of Round Robin Arbiter
+// This module connects MUX, Next Grant Pre calculator and Grant state machine
+// Input : request , weight bus
+// Output : grant
+
+`include "Verify.vh"
+module RRBTOP
+#(
+parameter CHANNELS = `CHANNELS,
+parameter WIDTH = `WIDTH,
+parameter WEIGHTLIMIT = `WEIGHTLIMIT
+)
+(
+reset ,
+clk ,
+// input to RRB
+request ,
+weight , // weight bus each having bit size of WIDTH for each channel
+// output from RRB
+grant ,
+scan_in0 ,
+scan_in1 ,
+scan_in2 ,
+scan_in3 ,
+scan_in4 ,
+scan_enable ,
+test_mode ,
+scan_out0 ,
+scan_out1 ,
+scan_out2 ,
+scan_out3 ,
+scan_out4
+) ;
+input
+reset , // system reset
+clk ; // system clock
+input
+scan_in0 , // test scan mode data input
+scan_in1 , // test scan mode data input
+scan_in2 , // test scan mode data input
+scan_in3 , // test scan mode data input
+scan_in4 , // test scan mode data input
+scan_enable , // test scan mode ena b l e
+test_mode ; // t e s t mode
+output
+scan_out0 , // test scan mode data output
+scan_out1 , // test scan mode data output
+scan_out2 , // test scan mode data output
+scan_out3 , // test scan mode data output
+scan_out4 ; // test scan mode data output
+input [(CHANNELS-1):0] request ;
+input [(CHANNELS*WIDTH)-1:0] weight ;
+output wire [(CHANNELS-1) : 0 ] grant ;
+wire [(CHANNELS-1):0] s_selOneHot ;
+wire [(WIDTH-1):0] s_weight ;
+wire [(CHANNELS-1):0] s_nextGrant ;
+// COMBINATIONAL SECTION //
+assign grant = s_selOneHot ;
+// MUX
+MUX #(
+.WIDTH(WIDTH) ,
+.CHANNELS(CHANNELS)
+)
+MUX(
+. reset(reset) ,
+. clk(clk) ,
+. scan_in0 (scan_in0) ,
+. scan_in1 (scan_in1) ,
+. scan_in2 (scan_in2) ,
+. scan_in3 (scan_in3) ,
+. scan_in4 (scan_in4) ,
+. scan_enable (scan_enable) ,
+. test_mode (test_mode) ,
+. scan_out0 (scan_out0) ,
+. scan_out1 (scan_out1) ,
+. scan_out2 (scan_out2) ,
+. scan_out3 (scan_out3) ,
+. scan_out4 (scan_out4) ,
+//input
+. selOneHot (s_selOneHot) ,
+. dataInBus (weight) ,
+//output
+. dataOut (s_weight)
+) ;
+NGPRC #(
+.CHANNELS(CHANNELS) )
+NGPRC(
+. reset (reset) ,
+. clk (clk) ,
+. scan_in0 (scan_in0) ,
+. scan_in1 (scan_in1) ,
+. scan_in2 (scan_in2) ,
+. scan_in3 (scan_in3) ,
+. scan_in4 (scan_in4) ,
+. scan_enable (scan_enable) ,
+. test_mode (test_mode) ,
+. scan_out0 (scan_out0) ,
+. scan_out1 (scan_out1) ,
+. scan_out2 (scan_out2) ,
+. scan_out3 (scan_out3) ,
+. scan_out4 (scan_out4) ,
+// i n p u t
+. request (request) ,
+
+. grant(s_selOneHot) ,
+// o u t p u t
+. nextGrant ( s_nextGrant )
+) ;
+GRANT #(
+.CHANNELS(CHANNELS) ,
+.WIDTH(WIDTH) ,
+.WEIGHTLIMIT(WEIGHTLIMIT) )
+GRANT(
+. reset (reset) ,
+. clk (clk) ,
+. scan_in0 (scan_in0) ,
+. scan_in1 (scan_in1) ,
+. scan_in2 (scan_in2) ,
+. scan_in3 (scan_in3) ,
+. scan_in4 (scan_in4) ,
+. scan_enable (scan_enable) ,
+. test_mode (test_mode) ,
+. scan_out0 (scan_out0) ,
+. scan_out1 (scan_out1) ,
+. scan_out2 (scan_out2) ,
+. scan_out3 (scan_out3) ,
+. scan_out4 (scan_out4) ,
+// i n p u t
+. request (request) ,
+. nextGrant (s_nextGrant) ,
+. weight (s_weight) ,
+// output
+. grant (s_selOneHot)
+) ;
+endmodule 

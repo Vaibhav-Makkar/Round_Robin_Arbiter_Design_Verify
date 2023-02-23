@@ -1,0 +1,99 @@
+module RRBTOP_tb;
+localparam WIDTH = 32;
+localparam CHANNELS = 4 ;
+localparam WEIGHTLIMIT = 100;
+// clock period
+localparam CLOCK_PERIOD = 20; // 20ns (500MHZ)
+wire scan_out0 , scan_out1 , scan_out2 , scan_out3 , scan_out4 ;
+reg clk, reset ;
+reg scan_in0 , scan_in1 , scan_in2 , scan_in3 , scan_in4 , scan_enable , test_mode ;
+// inputs
+reg [(CHANNELS*WIDTH-1):0] test_weight ;
+reg [(CHANNELS-1):0] test_request ;
+// reg test_ack ;
+// output
+wire [(CHANNELS-1):0] test_grant ;
+//
+reg [(WIDTH-1):0] tempData ;
+// flow control flags
+integer j = 0 ;
+RRBTOP #(
+.CHANNELS(CHANNELS) ,
+.WIDTH(WIDTH) ,
+.WEIGHTLIMIT(WEIGHTLIMIT)
+)
+top(
+. reset(reset) ,
+. clk(clk) ,
+. scan_in0(scan_in0) ,
+. scan_in1(scan_in1) ,
+. scan_in2(scan_in2) ,
+. scan_in3(scan_in3) ,
+. scan_in4(scan_in4) ,
+. scan_enable(scan_enable) ,
+. test_mode(test_mode) ,
+. scan_out0(scan_out0) ,
+. scan_out1(scan_out1) ,
+. scan_out2(scan_out2) ,
+. scan_out3(scan_out3) ,
+. scan_out4(scan_out4) ,
+. request(test_request) ,
+. weight(test_weight) ,
+. grant(test_grant)
+);
+
+initial
+begin
+$timeformat (-9 ,2 ,"ns",16) ;
+` ifdef SDFSCAN
+$sdf_annotate ( "sdf/ADDC_tsmc18_scan.sdf" , RRBTOP_tb.top) ;
+`endif
+clk = 1'b0 ;
+reset = 1'b1 ;
+scan_in0 = 1'b0 ;
+scan_in1 = 1'b0 ;
+scan_in2 = 1'b0 ;
+scan_in3 = 1'b0 ;
+scan_in4 = 1'b0 ;
+scan_enable = 1'b0 ;
+test_mode = 1'b0 ;
+// test_ack = 1'b0 ;
+test_request = 0 ;
+// set the very first weight to 2 (channel 0)
+tempData = 3 ;
+test_weight = 3 ;
+// input weight data bus generation
+for (j=1 ; j<CHANNELS; j = j +1)
+begin
+// manipulate test data for each channel (increment by 2 in this case )
+tempData = tempData + 2 ;
+// set weight data bus by shifting and bitwise or
+test_weight = test_weight | ( tempData << WIDTH*j ) ;
+end
+// pull reset high
+@(posedge clk ) ;
+@(posedge clk ) ;
+reset = 1'b0 ;
+@(posedge clk ) ;
+test_request = 'b1001 ;
+#100
+@(posedge clk ) ;
+// test_ack = 1'b1 ;
+test_request = 'b0010 ;
+@(posedge clk ) ;
+// test_ack = 1'b0 ;
+#160
+@(posedge clk ) ;
+// test_ack = 1'b1 ;
+test_request = 'b0001 ;
+@(posedge clk ) ;
+// test_ack = 1'b0 ;
+#500
+$finish ;
+
+end
+// clock generation
+always #(CLOCK_PERIOD/2)
+clk = ~ clk ;
+endmodule
+
